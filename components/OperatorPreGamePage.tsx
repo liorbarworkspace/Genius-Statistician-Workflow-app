@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import ChecklistWrapper from './ChecklistWrapper';
 import { GameDetails } from '../types';
 import { PRE_GAME_TASK_LABELS, INITIAL_PRE_GAME_TASKS } from '../constants';
+import Logo from './Logo';
 
 interface OperatorPreGamePageProps {
   onBack: () => void;
@@ -187,10 +188,16 @@ const OperatorPreGamePage: React.FC<OperatorPreGamePageProps> = ({ onBack, onHom
     const message1 = `${teamName.trim() || 'TeamName'} Reached`;
     const message2 = `${teamName.trim() || 'TeamName'} READY`;
     const messageToCaller = `היי ${callerName.trim() || 'קולר'}, מה המייל עבודה שלך ב-Genius? אני צריך להזין אותו למערכת. תודה!`;
-
+    
+  const title = (
+    <>
+        <Logo className="w-10 h-10" />
+        <span>Genius Sports Israel</span>
+    </>
+  );
 
   return (
-    <ChecklistWrapper onBack={onBack} onHome={onHome} title="Genius Sports Israel 🇮🇱" subtitle="🏀 תדריך אופרייטור - צ'קליסט לפני משחק">
+    <ChecklistWrapper onBack={onBack} onHome={onHome} title={title} subtitle="🏀 תדריך אופרייטור - צ'קליסט לפני משחק">
         
         {showIncompleteTasksModal && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4" dir="rtl">

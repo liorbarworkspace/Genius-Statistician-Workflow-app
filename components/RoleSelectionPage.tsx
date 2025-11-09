@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Role } from '../types';
+import Logo from './Logo';
 
 interface RoleSelectionPageProps {
   onSelectRole: (role: Role) => void;
@@ -9,8 +10,9 @@ interface RoleSelectionPageProps {
 const RoleSelectionPage: React.FC<RoleSelectionPageProps> = ({ onSelectRole }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center">
-      <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4">
-        🇮🇱 Genius Workflow Hub
+      <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4 flex items-center justify-center gap-4">
+        <Logo className="w-12 h-12 sm:w-16 sm:h-16" />
+        <span>Genius Workflow Hub</span>
       </h1>
       <p className="text-lg sm:text-xl text-slate-400 mb-12">מדריך עבודה לסטטיסטיקאי Genius Sports</p>
       <div className="w-full max-w-sm space-y-6">

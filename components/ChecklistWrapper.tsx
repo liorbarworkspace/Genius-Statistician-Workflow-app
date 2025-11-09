@@ -3,7 +3,7 @@ import React from 'react';
 interface ChecklistWrapperProps {
   onBack: () => void;
   onHome: () => void;
-  title: string;
+  title: React.ReactNode;
   subtitle: string;
   children: React.ReactNode;
 }
@@ -22,7 +22,7 @@ const ChecklistWrapper: React.FC<ChecklistWrapperProps> = ({ onBack, onHome, tit
         </svg>
       </button>
       <header className="bg-blue-950 text-white p-6 text-center rounded-lg shadow-lg mb-8 relative">
-        <h1 className="text-3xl sm:text-4xl font-bold">{title}</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold flex items-center justify-center gap-3">{title}</h1>
         <h2 className="text-lg sm:text-xl font-light mt-1 text-slate-300">{subtitle}</h2>
       </header>
       <div className="bg-slate-800 rounded-lg shadow-md p-6 sm:p-8">

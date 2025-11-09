@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ChecklistWrapper from './ChecklistWrapper';
 import { GameDetails, PostGameTasks } from '../types';
 import { INITIAL_POST_GAME_TASKS, POST_GAME_TASK_LABELS } from '../constants';
+import Logo from './Logo';
 
 interface OperatorPostGamePageProps {
   onBack: () => void;
@@ -66,9 +67,16 @@ const OperatorPostGamePage: React.FC<OperatorPostGamePageProps> = ({ onBack, onH
   };
 
   const subtitle = `✅ צ'קליסט סיום משמרת | ${gameDetails.homeTeam} vs ${gameDetails.awayTeam}`;
+  
+  const title = (
+    <>
+        <Logo className="w-10 h-10" />
+        <span>Genius Sports Israel</span>
+    </>
+  );
 
   return (
-    <ChecklistWrapper onBack={onBack} onHome={onHome} title="Genius Sports Israel 🇮🇱" subtitle={subtitle}>
+    <ChecklistWrapper onBack={onBack} onHome={onHome} title={title} subtitle={subtitle}>
         {showIncompleteTasksModal && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4" dir="rtl">
                 <div className="bg-slate-800 rounded-lg shadow-2xl p-6 sm:p-8 w-full max-w-lg border-2 border-yellow-500">
