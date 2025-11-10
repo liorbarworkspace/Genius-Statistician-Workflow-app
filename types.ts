@@ -1,4 +1,6 @@
+
 export enum Page {
+  Login,
   RoleSelection,
   GameSetup,
   ChecklistSelection,
@@ -7,6 +9,9 @@ export enum Page {
   CallerWorkInProgress,
   GameHistory,
   PostGameSelection,
+  Admin,
+  LoginHistory,
+  SetupInstructions,
 }
 
 export enum Role {
@@ -14,6 +19,18 @@ export enum Role {
   Caller,
   Operator,
 }
+
+export type User = {
+  uid: string;
+  email: string;
+  role: 'admin' | 'user';
+};
+
+export type LoginRecord = {
+    uid: string;
+    email: string;
+    timestamp: any; // Firestore Timestamp
+};
 
 export type PreGameTasks = {
   arrival_announce: boolean;
@@ -43,7 +60,7 @@ export type PostGameTasks = {
 };
 
 export type GameDetails = {
-  id: string; // Unique ID, e.g., timestamp
+  id: string; // Unique ID, e.g., Firestore document ID
   operatorEmail: string;
   homeTeam: string;
   awayTeam: string;

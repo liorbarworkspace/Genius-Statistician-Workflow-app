@@ -1,5 +1,6 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
-import { Page, Role, GameDetails } from './types';
+import { Page, Role, GameDetails, LoginRecord, User } from './types';
 import OperatorPreGamePage from './components/OperatorPreGamePage';
 import OperatorPostGamePage from './components/OperatorPostGamePage';
 import RoleSelectionPage from './components/RoleSelectionPage';
@@ -8,81 +9,110 @@ import WIPPage from './components/WIPPage';
 import GameSetupPage from './components/GameSetupPage';
 import GameHistoryPage from './components/GameHistoryPage';
 import PostGameSelectionPage from './components/PostGameSelectionPage';
-
+import LoginPage from './components/LoginPage';
+import LoginHistoryPage from './components/LoginHistoryPage';
+import AdminPage from './components/AdminPage';
+import FirebaseSetupInstructionsPage from './components/FirebaseSetupInstructionsPage';
+import { isFirebaseConfigured } from './services/firebase';
+import { onAuthStateChangedListener, signOutUser } from './services/authService';
+import { getInitialData, saveGame as saveGameToDb, updateUsers as updateUsersInDb, clearGames as clearGamesInDb, getUserDocument, createUserDocumentFromAuth, logUserLogin } from './services/firestoreService';
+import { User as FirebaseUser } from 'firebase/auth';
 
 function App() {
-  const [page, setPage] = useState<Page>(Page.RoleSelection);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [currentUserDetails, setCurrentUserDetails] = useState<User | null>(null);
+  const [loginHistory, setLoginHistory] = useState<LoginRecord[]>([]);
+  const [page, setPage] = useState<Page>(Page.Login);
   const [role, setRole] = useState<Role>(Role.None);
   const [currentGameDetails, setCurrentGameDetails] = useState<GameDetails | null>(null);
   const [savedGames, setSavedGames] = useState<GameDetails[]>([]);
-  const [operatorEmail, setOperatorEmail] = useState<string>('');
+  const [authorizedUsers, setAuthorizedUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load saved data and role from localStorage on mount
-  useEffect(() => {
+  const isApiSetup = isFirebaseConfigured();
+
+  const loadInitialData = useCallback(async (userRole: User['role']) => {
+    setError(null);
     try {
-      const storedGames = localStorage.getItem('genius-workflow-saved-games');
-      if (storedGames) {
-        setSavedGames(JSON.parse(storedGames));
-      }
-      const storedEmail = localStorage.getItem('genius-workflow-operator-email');
-      if (storedEmail) {
-        setOperatorEmail(storedEmail);
-      }
-      const storedRole = localStorage.getItem('genius-workflow-role');
-      if (storedRole && storedRole !== String(Role.None)) {
-        const persistedRole = parseInt(storedRole) as Role;
-        setRole(persistedRole);
-        if (persistedRole === Role.Operator) {
-            setPage(Page.ChecklistSelection);
-        } else if (persistedRole === Role.Caller) {
-            setPage(Page.CallerWorkInProgress);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load data from localStorage", error);
+      const data = await getInitialData(userRole);
+      setAuthorizedUsers(data.users || []);
+      setSavedGames(data.games || []);
+      setLoginHistory(data.logins || []);
+    } catch (err: any) {
+      console.error("Failed to load data from Firestore", err);
+      setError(err.message || "Could not connect to the database.");
     }
   }, []);
-  
-  // Save operator email to localStorage when it changes
+
   useEffect(() => {
-    if (operatorEmail) {
+    if (!isApiSetup) {
+      setPage(Page.SetupInstructions);
+      setIsLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChangedListener(async (user) => {
+      setIsLoading(true);
+      if (user) {
+        setCurrentUser(user);
         try {
-            localStorage.setItem('genius-workflow-operator-email', operatorEmail);
-        } catch (error) {
-            console.error("Failed to save operator email to localStorage", error);
+            let userDoc = await getUserDocument(user.uid);
+            if (!userDoc) {
+                // First time login for this user
+                userDoc = await createUserDocumentFromAuth(user);
+            }
+            await logUserLogin(user.uid);
+            setCurrentUserDetails(userDoc);
+            await loadInitialData(userDoc.role);
+            setPage(Page.RoleSelection);
+        } catch (err) {
+             console.error("Error fetching user data:", err);
+             setError("Failed to load your profile. Please try again.");
+             await signOutUser();
         }
-    }
-  }, [operatorEmail]);
+      } else {
+        setCurrentUser(null);
+        setCurrentUserDetails(null);
+        handleLogout(false); // don't call firebase signOut again
+      }
+      setIsLoading(false);
+    });
+
+    return unsubscribe;
+  }, [isApiSetup, loadInitialData]);
   
-  // Save role to localStorage when it changes
+  // Persist role locally for better UX *within* a session (e.g. on back button)
   useEffect(() => {
-    try {
+    if(currentUser) {
         localStorage.setItem('genius-workflow-role', String(role));
-    } catch (error) {
-        console.error("Failed to save role to localStorage", error);
     }
-  }, [role]);
+  }, [role, currentUser]);
 
 
-  // Update browser history when app state changes
   useEffect(() => {
+    if (page === Page.SetupInstructions || !currentUser) return;
     const state = { page, role, gameId: currentGameDetails?.id };
     if (history.state?.page !== page || history.state?.role !== role || history.state?.gameId !== currentGameDetails?.id) {
       window.history.pushState(state, '');
     }
-  }, [page, role, currentGameDetails]);
+  }, [page, role, currentGameDetails, currentUser]);
     
-  // Scroll to top on page change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [page]);
 
-  // Listen for browser back/forward button clicks
   useEffect(() => {
+    if (page === Page.SetupInstructions || !currentUser) return;
+
     const handlePopState = (event: PopStateEvent) => {
+      if (!currentUser) {
+          handleLogout();
+          return;
+      }
       const savedRole = localStorage.getItem('genius-workflow-role');
       const defaultRole = savedRole ? (parseInt(savedRole) as Role) : Role.None;
-      const defaultPage = defaultRole === Role.Operator ? Page.ChecklistSelection : defaultRole === Role.Caller ? Page.CallerWorkInProgress : Page.RoleSelection;
+      const defaultPage = defaultRole !== Role.None ? Page.ChecklistSelection : Page.RoleSelection;
 
       if (event.state) {
         setPage(event.state.page ?? defaultPage);
@@ -92,16 +122,27 @@ function App() {
         setRole(defaultRole);
       }
     };
-
     window.addEventListener('popstate', handlePopState);
-    
-    // Set initial state without pushing to history
     window.history.replaceState({ page, role }, '');
-
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [currentUser, page]);
+
+  const handleLogout = useCallback(async (shouldSignOut = true) => {
+      if (shouldSignOut) {
+          await signOutUser();
+      }
+      setCurrentUser(null);
+      setCurrentUserDetails(null);
+      setRole(Role.None);
+      setCurrentGameDetails(null);
+      setSavedGames([]);
+      setLoginHistory([]);
+      setAuthorizedUsers([]);
+      localStorage.removeItem('genius-workflow-role');
+      setPage(isApiSetup ? Page.Login : Page.SetupInstructions);
+  }, [isApiSetup]);
 
   const handleRoleSelect = useCallback((selectedRole: Role) => {
     setRole(selectedRole);
@@ -132,50 +173,54 @@ function App() {
     setPage(Page.OperatorPostGame);
   }, []);
 
-  const handleSaveGame = useCallback((finalDetails: GameDetails) => {
-    setSavedGames(prevGames => {
-      const existingIndex = prevGames.findIndex(g => g.id === finalDetails.id);
-      let newGames;
-      if (existingIndex > -1) {
-        newGames = [...prevGames];
-        newGames[existingIndex] = finalDetails;
-      } else {
-        newGames = [finalDetails, ...prevGames].slice(0, 50); // Keep last 50 games
-      }
-      
-      try {
-        localStorage.setItem('genius-workflow-saved-games', JSON.stringify(newGames));
-      } catch (error) {
-        console.error("Failed to save games to localStorage", error);
-      }
-      
-      return newGames;
-    });
-  }, []);
+  const handleSaveGame = useCallback(async (finalDetails: GameDetails) => {
+    const existingIndex = savedGames.findIndex(g => g.id === finalDetails.id);
+    let newGames;
+    if (existingIndex > -1) {
+      newGames = [...savedGames];
+      newGames[existingIndex] = finalDetails;
+    } else {
+      newGames = [finalDetails, ...savedGames];
+    }
+    setSavedGames(newGames); // Optimistic update
 
-  const handleNavigateToPostGame = useCallback(() => {
-    setPage(Page.PostGameSelection);
-  }, []);
-  
+    try {
+        await saveGameToDb(finalDetails);
+    } catch (err) {
+        setError("Connection error while saving game. Your changes might be lost.");
+        setSavedGames(savedGames); // Revert on failure
+    }
+  }, [savedGames]);
+
   const handleFinishPostGame = useCallback((finalDetails: GameDetails) => {
       handleSaveGame(finalDetails);
       setPage(Page.ChecklistSelection);
   }, [handleSaveGame]);
-
-  const handleNavigateToHistory = useCallback(() => {
-    setPage(Page.GameHistory);
-  }, []);
   
-  const handleClearHistory = useCallback(() => {
+  const handleUpdateUsers = useCallback(async (updatedUsers: User[]) => {
+    const previousUsers = authorizedUsers;
+    setAuthorizedUsers(updatedUsers); // Optimistic update
+    try {
+        await updateUsersInDb(updatedUsers);
+    } catch (err) {
+        setError('Connection error while updating users.');
+        setAuthorizedUsers(previousUsers); // Revert
+    }
+  }, [authorizedUsers]);
+
+
+  const handleClearHistory = useCallback(async () => {
     if (window.confirm('האם אתה בטוח שברצונך למחוק את כל היסטוריית המשחקים? לא ניתן לשחזר פעולה זו.')) {
+        const previousGames = savedGames;
         setSavedGames([]);
         try {
-            localStorage.removeItem('genius-workflow-saved-games');
-        } catch (error) {
-            console.error("Failed to clear game history from localStorage", error);
+            await clearGamesInDb();
+        } catch (err) {
+            setError('Connection error while clearing history.');
+            setSavedGames(previousGames);
         }
     }
-  }, []);
+  }, [savedGames]);
 
 
   const goBack = useCallback(() => {
@@ -186,36 +231,68 @@ function App() {
     setPage(Page.RoleSelection);
     setRole(Role.None);
     setCurrentGameDetails(null);
-    try {
-        localStorage.removeItem('genius-workflow-role');
-    } catch (error) {
-        console.error("Failed to clear role from localStorage", error);
-    }
+    localStorage.removeItem('genius-workflow-role');
   }, []);
   
   const renderPage = () => {
+    if (page === Page.SetupInstructions) {
+        return <FirebaseSetupInstructionsPage />;
+    }
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <svg className="animate-spin h-10 w-10 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="mt-4 text-lg">טוען נתונים...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    if (error) {
+        return (
+             <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center bg-red-900/50 p-8 rounded-lg">
+                    <h2 className="text-2xl text-red-400 font-bold mb-4">An Error Occurred</h2>
+                    <p className="text-slate-300">{error}</p>
+                    <button onClick={() => handleLogout()} className="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Go to Login
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!currentUser || !currentUserDetails) {
+        return <LoginPage />;
+    }
+    
     switch (page) {
       case Page.RoleSelection:
         return <RoleSelectionPage onSelectRole={handleRoleSelect} />;
       case Page.ChecklistSelection:
         return <ChecklistSelectionPage 
                     onSelectChecklist={handleChecklistSelect} 
-                    onNavigateToHistory={handleNavigateToHistory}
+                    onNavigateToHistory={() => setPage(Page.GameHistory)}
+                    onNavigateToAdmin={() => setPage(Page.Admin)}
                     onBack={goBack}
                     onGoHome={goHome}
+                    onLogout={() => handleLogout()}
                     role={role} 
+                    currentUserRole={currentUserDetails.role}
                 />;
        case Page.GameSetup:
         return <GameSetupPage 
           onSetupComplete={handleGameSetupComplete}
           savedGames={savedGames}
           onBack={goBack}
-          operatorEmail={operatorEmail}
-          setOperatorEmail={setOperatorEmail}
+          operatorEmail={currentUserDetails.email}
         />;
       case Page.OperatorPreGame:
         if (!currentGameDetails) {
-          // Fallback if details are missing
           setPage(Page.GameSetup);
           return null;
         }
@@ -224,7 +301,7 @@ function App() {
           onHome={goHome} 
           gameDetails={currentGameDetails}
           onSaveGame={handleSaveGame} 
-          onNavigateToPostGame={handleNavigateToPostGame}
+          onNavigateToPostGame={() => setPage(Page.PostGameSelection)}
         />;
       case Page.PostGameSelection:
         return <PostGameSelectionPage
@@ -234,7 +311,6 @@ function App() {
                 />;
       case Page.OperatorPostGame:
         if (!currentGameDetails) {
-          // Fallback if details are missing
           setPage(Page.PostGameSelection);
           return null;
         }
@@ -251,8 +327,18 @@ function App() {
                   onClearHistory={handleClearHistory} 
                   onUpdateGame={handleSaveGame}
                 />;
+      case Page.Admin:
+        return <AdminPage 
+                    onBack={goHome} 
+                    onNavigateToLoginHistory={() => setPage(Page.LoginHistory)} 
+                    loginHistoryCount={loginHistory.length}
+                    authorizedUsers={authorizedUsers}
+                    onUpdateUsers={handleUpdateUsers}
+                />;
+      case Page.LoginHistory:
+        return <LoginHistoryPage loginHistory={loginHistory} onBack={() => setPage(Page.Admin)} />;
       case Page.CallerWorkInProgress:
-        return <WIPPage onBack={goHome} roleName="קולר" />;
+        return <WIPPage onBack={goHome} onLogout={() => handleLogout()} roleName="קולר" />;
       default:
         return <RoleSelectionPage onSelectRole={handleRoleSelect} />;
     }

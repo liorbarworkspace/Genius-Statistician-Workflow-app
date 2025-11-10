@@ -1,15 +1,18 @@
 import React from 'react';
-import { Role } from '../types';
+import { Role, User } from '../types';
 
 interface ChecklistSelectionPageProps {
   onSelectChecklist: (type: 'pre' | 'post') => void;
   onNavigateToHistory: () => void;
+  onNavigateToAdmin: () => void;
   onBack: () => void;
   onGoHome: () => void;
+  onLogout: () => void;
   role: Role;
+  currentUserRole: User['role'] | null;
 }
 
-const ChecklistSelectionPage: React.FC<ChecklistSelectionPageProps> = ({ onSelectChecklist, onNavigateToHistory, onBack, onGoHome, role }) => {
+const ChecklistSelectionPage: React.FC<ChecklistSelectionPageProps> = ({ onSelectChecklist, onNavigateToHistory, onNavigateToAdmin, onBack, onGoHome, onLogout, role, currentUserRole }) => {
   const roleName = role === Role.Operator ? 'אופרייטור' : 'קולר';
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center">
@@ -40,10 +43,21 @@ const ChecklistSelectionPage: React.FC<ChecklistSelectionPageProps> = ({ onSelec
         >
           מעקב משחקים
         </button>
+         {currentUserRole === 'admin' && (
+             <button
+              onClick={onNavigateToAdmin}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-8 text-2xl rounded-lg shadow-lg transform transition-transform duration-200 hover:scale-105"
+            >
+              פאנל ניהול
+            </button>
+         )}
       </div>
-       <div className="mt-12">
+       <div className="mt-12 flex items-center justify-center gap-6">
             <button onClick={onGoHome} className="text-slate-400 hover:text-white transition-colors font-semibold py-2 px-4 rounded-lg">
                 החלף תפקיד
+            </button>
+            <button onClick={onLogout} className="text-red-400 hover:text-red-300 transition-colors font-semibold py-2 px-4 rounded-lg">
+                התנתק
             </button>
         </div>
     </div>

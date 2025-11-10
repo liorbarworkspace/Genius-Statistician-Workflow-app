@@ -1,12 +1,12 @@
-
 import React from 'react';
 
 interface WIPPageProps {
   onBack: () => void;
+  onLogout: () => void;
   roleName: string;
 }
 
-const WIPPage: React.FC<WIPPageProps> = ({ onBack, roleName }) => {
+const WIPPage: React.FC<WIPPageProps> = ({ onBack, onLogout, roleName }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center">
       <button onClick={onBack} className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
@@ -19,12 +19,20 @@ const WIPPage: React.FC<WIPPageProps> = ({ onBack, roleName }) => {
         <p className="text-xl text-slate-300">
           החלק של ה<span className="font-bold">{roleName}</span> נמצא בפיתוח ויעלה בקרוב.
         </p>
-        <button
-          onClick={onBack}
-          className="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-        >
-          חזרה
-        </button>
+        <div className="mt-8 flex gap-4">
+            <button
+            onClick={onBack}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            >
+            חזרה
+            </button>
+            <button
+            onClick={onLogout}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            >
+            התנתק
+            </button>
+        </div>
       </div>
     </div>
   );

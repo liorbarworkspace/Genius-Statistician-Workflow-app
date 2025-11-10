@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { GameDetails } from '../types';
 
 interface GameSetupPageProps {
@@ -6,10 +7,9 @@ interface GameSetupPageProps {
   savedGames: GameDetails[];
   onBack: () => void;
   operatorEmail: string;
-  setOperatorEmail: (email: string) => void;
 }
 
-const GameSetupPage: React.FC<GameSetupPageProps> = ({ onSetupComplete, savedGames, onBack, operatorEmail, setOperatorEmail }) => {
+const GameSetupPage: React.FC<GameSetupPageProps> = ({ onSetupComplete, savedGames, onBack, operatorEmail }) => {
   const [details, setDetails] = useState<Omit<GameDetails, 'id'>>({
     operatorEmail: operatorEmail,
     homeTeam: '',
@@ -24,10 +24,6 @@ const GameSetupPage: React.FC<GameSetupPageProps> = ({ onSetupComplete, savedGam
   });
   const [otherLeague, setOtherLeague] = useState('');
 
-  useEffect(() => {
-    setDetails(prev => ({ ...prev, operatorEmail }));
-  }, [operatorEmail]);
-
   const uniqueHomeTeams = useMemo(() => [...new Map(savedGames.map(item => [item.homeTeam, item])).values()], [savedGames]);
   const uniqueAwayTeams = useMemo(() => [...new Map(savedGames.map(item => [item.awayTeam, item])).values()], [savedGames]);
   const uniqueCallers = useMemo(() => [...new Map(savedGames.filter(g => g.callerName).map(item => [item.callerName, item])).values()], [savedGames]);
@@ -36,11 +32,6 @@ const GameSetupPage: React.FC<GameSetupPageProps> = ({ onSetupComplete, savedGam
     const { name, value } = e.target;
     
     const newDetails = { ...details };
-
-    if (name === 'operatorEmail') {
-        setOperatorEmail(value); // Update parent state directly for persistence
-        return; // Let useEffect handle updating local state
-    }
 
     (newDetails as any)[name] = value;
 
@@ -68,8 +59,8 @@ const GameSetupPage: React.FC<GameSetupPageProps> = ({ onSetupComplete, savedGam
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!details.homeTeam || !details.awayTeam || !operatorEmail) {
-        alert('אנא מלא את שדות החובה: אימייל, קבוצה מארחת וקבוצה אורחת.');
+    if (!details.homeTeam || !details.awayTeam) {
+        alert('אנא מלא את שדות החובה: קבוצה מארחת וקבוצה אורחת.');
         return;
     }
     const finalLeague = details.league === 'אחר' ? otherLeague : details.league;
@@ -91,7 +82,7 @@ const GameSetupPage: React.FC<GameSetupPageProps> = ({ onSetupComplete, savedGam
             <form onSubmit={handleSubmit} className="space-y-6">
                  <div>
                     <label htmlFor="operatorEmail" className="block text-lg font-bold text-orange-400 mb-2">מייל עבודה שלך (Genius)<span className="text-red-500">*</span></label>
-                    <input type="email" name="operatorEmail" value={operatorEmail} onChange={handleChange} placeholder="your.email@geniusports.com" required className="w-full bg-slate-700 text-white p-3 rounded-md border-2 border-slate-600 focus:border-orange-500 focus:outline-none transition-colors" dir="ltr" />
+                    <input type="email" name="operatorEmail" value={operatorEmail} readOnly className="w-full bg-slate-900 text-slate-400 p-3 rounded-md border-2 border-slate-600 focus:outline-none" dir="ltr" />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
