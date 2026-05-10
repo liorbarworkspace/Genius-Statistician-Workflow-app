@@ -1,35 +1,35 @@
-# Genius Statistician Workflow App
+# Genius Statistician Workflow — Israel
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
 
-A workflow management tool built for basketball statistics operators at Genius Sports Israel.
+> A workflow management tool built by a former Genius Sports Israel operator to professionalize and systematize the daily job of a basketball statistician.
 
 ---
 
-## Background
+## The story behind this
 
-During my time working as a statistics operator with Genius Sports Israel, I identified a recurring problem: operators — especially new ones — would miss pre-game or post-game steps under time pressure, leading to errors that affected data quality and required manual corrections.
+I worked as a **basketball statistics operator at Genius Sports Israel** — a company that provides live statistical data for Israeli basketball leagues using FIBA LiveStats software.
 
-I built this app as a personal initiative to solve that problem. It guides operators through every required task before and after each game with a structured, step-by-step checklist interface — reducing human error and making the operator role more consistent and professional.
+The job involves a precise sequence of tasks before, during, and after every game: setting up a station, entering referees and coaches, verifying rosters, broadcasting system-ready messages to WhatsApp groups, uploading final data, filing expense reports, and more. Missing a step has real consequences — from incorrect game data to payment issues.
 
-The interface is in Hebrew to match the working environment.
+There was no dedicated tool to guide operators through this workflow. Everything was done from memory or scattered notes. I built this app to change that.
+
+**This is a personal initiative.** I am no longer employed at Genius, but the tool reflects the real operational procedures I followed on the job. The goal: reduce human error, save time, and make the operator role more professional.
 
 ---
 
-## Features
+## What it does
 
-- **Pre-game checklist** — step-by-step task guidance before tip-off
-- **Post-game checklist** — structured wrap-up flow after the final buzzer
-- **Game setup page** — configure game details before starting
-- **Game history log** — review past sessions with CSV export
-- **Name parser tool** — splits official player names into structured components
-- **Admin panel** — user management and access control
-- **Login history** — audit trail of operator activity
-- **Firebase authentication** — role-based access (operator / admin)
-- **Google Sheets integration** — data sync via API
+- **Pre-game checklist** — step-by-step task list before tip-off: station setup, officials entry, roster verification, system readiness, READY message broadcast.
+- **Post-game checklist** — data upload verification, box-score report, expense logging, error-file review, next-game confirmation.
+- **Name parser** — splits referee / coach full names into first/last with one-click copy, ready to paste directly into FIBA LiveStats.
+- **Google Calendar reminder** — auto-generates a calendar event timed 30 minutes before tip-off as a reminder to send the READY screenshot.
+- **Game history** — logs all games with task-completion status; supports inline editing and CSV export.
+- **Admin panel** — manage authorized users in real time via Firestore; view full login history. No redeployment needed to add users.
+- **Firebase Auth** — Google Sign-In with role-based access (user / admin).
 
 ---
 
@@ -37,19 +37,110 @@ The interface is in Hebrew to match the working environment.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS |
-| Backend / Auth | Firebase Authentication, Firestore |
-| Data | Google Sheets API |
+| Frontend | React 18 + TypeScript |
+| Build | Vite |
+| Styling | Tailwind CSS (CDN) |
+| Auth | Firebase Authentication (Google Sign-In) |
+| Database | Cloud Firestore |
+| Hosting | Any static host (Vercel, Firebase Hosting, etc.) |
 
 ---
 
-## Run Locally
+## Getting started
 
-**Prerequisites:** Node.js, a Firebase project, a `.env` file with credentials
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/your-username/genius-statistician-workflow.git
+cd genius-statistician-workflow
+```
+
+### 2. Install dependencies
 
 ```bash
 npm install
+```
+
+### 3. Configure environment variables
+
+Copy the example file and fill in your Firebase project credentials:
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and set:
+
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_ADMIN_EMAIL=your_admin@gmail.com
+```
+
+> The `VITE_ADMIN_EMAIL` address is automatically granted admin role on first sign-in.
+
+### 4. Configure internal links (optional)
+
+Two links in `components/OperatorPostGamePage.tsx` are marked `#placeholder`. Replace them with your own:
+- `#post-game-edits-link-here` → your post-game error-tracking sheet
+- `#schedule-sheet-link-here` → your game schedule / assignment sheet
+
+### 5. Set up Firebase
+
+1. Create a project at [Firebase Console](https://console.firebase.google.com/).
+2. Enable **Authentication → Google** sign-in provider.
+3. Enable **Firestore** in production mode.
+4. Copy the Firestore security rules from the in-app setup page (shown automatically when Firebase is not yet configured).
+
+### 6. Run locally
+
+```bash
 npm run dev
 ```
 
-Configure your Firebase credentials in `.env` before running.
+The app runs at `http://localhost:3000`.
+
+---
+
+## Project structure
+
+```
+├── components/
+│   ├── OperatorPreGamePage.tsx   # Pre-game checklist with name parser & calendar
+│   ├── OperatorPostGamePage.tsx  # Post-game checklist
+│   ├── GameHistoryPage.tsx       # Game log with CSV export
+│   ├── AdminPage.tsx             # User management panel
+│   └── ...
+├── services/
+│   ├── firebase.ts               # Firebase init
+│   ├── authService.ts            # Google Sign-In helpers
+│   └── firestoreService.ts       # Firestore CRUD
+├── constants.ts                  # Checklist task definitions
+├── types.ts                      # TypeScript interfaces
+├── App.tsx                       # Routing & state
+└── .env.example                  # Environment variable template
+```
+
+---
+
+## Screenshots
+
+> _Coming soon_
+
+---
+
+## Notes
+
+- The UI is in **Hebrew** (RTL) — the app is built for Israeli basketball operators.
+- The **Caller role** is a placeholder (Work In Progress).
+- Internal company links (error sheet, schedule sheet) are replaced with placeholders in the public version — configure them for your own setup.
+
+---
+
+## License
+
+MIT
